@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/Pastafarians/linguine.png?label=ready&title=Ready)](https://waffle.io/Pastafarians/linguine)
 # Linguine
 
 
