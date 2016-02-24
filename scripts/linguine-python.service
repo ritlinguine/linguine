@@ -1,0 +1,11 @@
+[Service]
+WorkingDirectory=/home/linguini/linguine-python
+ExecStart=/home/linguini/.pyenv/versions/3.4.3/bin/python -u -m linguine.webserver
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=linguine-python
+User=linguini
+Group=nobody
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+[Service]
+WorkingDirectory=/home/linguini/linguine-node
+ExecStart=/usr/local/bin/node /home/linguini/linguine-node/bin/www
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=linguine-node
+User=linguini
+Group=nobody
+
+[Install]
+WantedBy=multi-user.target
