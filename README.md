@@ -8,8 +8,6 @@ Linguine is comprised of the following submodules:
 - [SPLAT](https://github.com/ritlinguine/SPLAT): Stable version of the Speech Processing &amp; Linguistic Analysis Tool.
 - [stanford_corenlp_pywrapper](https://github.com/ritlinguine/stanford_corenlp_pywrapper): Stable version of the Stanford CoreNLP PyWrapper.
 
-<b>NOTE:</b> Documentation for Linguine is under development.
-
 ## Contributing
 
 Pull requests require review by two developers to ensure quality and accuracy of contributions.
