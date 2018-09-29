@@ -12,9 +12,15 @@ Linguine is comprised of the following submodules:
 
 Pull requests require review by two developers to ensure quality and accuracy of contributions.
 
-## Developer Contacts (September 2017)
+## Releasing a new version
 
-- Benjamin S. Meyers ([bsm9339@rit.edu](mailto:bsm9339@rit.edu))
+1. `cd` into the submodules and checkout the specific commit
+2. `git tag -a v[version_number]`
+3. `git push --tags`
+
+## Developer Contacts (September 2018)
+
+- Alex Hedges ([aph3032@rit.edu](mailto:aph3032@rit.edu))
 - Cecilia O. Alm ([coagla@rit.edu](mailto:coagla@rit.edu))
 - Emily Prud'hommeaux ([emilypx@rit.edu](mailto:emilypx@rit.edu))
 
@@ -28,7 +34,7 @@ Alm, Cecilia O., Meyers, Benjamin S., and Prud'hommeaux, Emily. 2017. An Analysi
 
 ## Acknowledgments
 
-The work was partially supported by an RIT PLIG grant. Many thanks to three senior project teams: ProNouns, Rigatoni, and Pastafarians helped develop Linguine's core functionality and interface.
+The work was partially supported by an RIT PLIG grant. Many thanks to three senior project teams: ProNouns, Rigatoni, and Pastafarians helped develop Linguine's core functionality and interface. Additional thanks to the developer after them: Benjamin S. Meyers.
 
 ## Disclaimer
 
