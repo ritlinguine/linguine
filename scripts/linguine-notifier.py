@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+#### IMPORTS ###################################################################
 import pymongo
 import pprint
 import json
@@ -17,49 +18,49 @@ from email.message import EmailMessage as EMAIL
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+#### GLOBALS ###################################################################
 FROM_ADDRESS = "linguine@nlp.rit.edu"
-TO_ADDRESSES = "bsm9339@rit.edu"
+TO_ADDRESSES = "bsm9339@rit.edu;coagla@rit.edu"
 SUBJECT = "[Linguine] Long-Running Analyses"
-TEMPLATE = "| {a_id:24} | {a_type:24} | {u_name:24} | {u_id:7} | {time:11} | {db:4} |\n"
-TYPE_MAP = {'nlp-ner': 'Named-Entity Recognition',
-            'nlp-coref': 'Coreference Resolution',
-            'nlp-relation': 'Relation Extraction', 
-            'nlp-sentiment': 'Sentiment',
-            'nlp-pos': 'Parse Tree w/ POS',
-            'splat-pronouns': 'Pronoun Frequency',
-            'splat-disfluency': 'Disfluency',
-            'splat-syllables': 'Syllable Frequency',
-            'splat-ngrams': 'N-Gram Frequency',
-            'splat-complexity': 'Complexity',
-            'splat-pos': 'POS Frequency',
-            'wordcloudop': 'Term Frequency'}
+TEMPLATE = ("| {a_id:24} | {a_type:24} | {u_name:24} | {u_id:7} | {time:11} |"
+            " {db:4} |\n")
+TYPE_MAP = {
+    'nlp-ner': 'Named-Entity Recognition', 'nlp-pos': 'Parse Tree w/ POS',
+    'nlp-coref': 'Coreference Resolution', 'nlp-sentiment': 'Sentiment',
+    'nlp-relation': 'Relation Extraction', 'wordcloudop': 'Term Frequency',
+    'splat-pronouns': 'Pronoun Frequency', 'splat-disfluency': 'Disfluency',
+    'splat-syllables': 'Syllable Frequency', 'splat-ngrams': 'N-Gram Frequency',
+    'splat-complexity': 'Complexity', 'splat-pos': 'POS Frequency'}
 
-# Analysis Keys:
-# _id, user_id, analysis, eta, analysis_name, time_created, result, complete,
-# cleanup_ids, tokenizer, corpora_ids
-
-def generate_email_message(failing_analyses):
+def generate_email_message(analyses):
+    """
+    Given a list of dictionaries, where each dictionary represents an analysis,
+    create a MIMEMultipart object (an email) and return it.
+    """
     global TEMPLATE, TYPE_MAP, TO_ADDRESSES, FROM_ADDRESS, SUBJECT
     curr = DT.now(TZ.utc).astimezone()
     curr_time = curr.time().strftime("%H:%M:%S")
     curr_date = curr.date().strftime("%Y-%m-%d")
-    pre = ("As of " + str(curr_time) + " on " + str(curr_date) +
-           ", Linguine has " + str(len(failing_analyses)) +
-           " analyses that have been running for more than 15 minutes:\n\n")
+    pre = (
+        "As of {:s} on {:s}, Linguine has {:d} analyses that have been running"
+        " for more than 15 minutes:\n\n").format(
+            str(curr_time), str(curr_date), len(analyses))
 
-    post = "\nNote: This is an auto-generated email. Please do not reply."
+    post = "Note: This is an auto-generated email. Please do not reply."
 
     message = list()
-    message.append(TEMPLATE.format(
-        a_id='Analysis ID', a_type='Analysis Type', u_name='User Name',
-        u_id='User ID', time='Time (mins)', db='DB'))
-    message.append("+--------------------------+--------------------------"
-                   "+--------------------------+---------+-------------"
-                   "+------+\n")
-    for a in failing_analyses:
-        message.append(TEMPLATE.format(
-            a_id=a['id'], a_type=TYPE_MAP[a['type']], u_name=a['user_name'],
-            u_id=a['user_uid'], time=a['elapsed'], db=a['db']))
+    message.append(
+        TEMPLATE.format(
+            a_id='Analysis ID', a_type='Analysis Type', u_name='User Name',
+            u_id='User ID', time='Time (mins)', db='DB'))
+    message.append(
+        "+--------------------------+--------------------------+--------------"
+        "------------+---------+-------------+------+")
+    for a in analyses:
+        message.append(
+            TEMPLATE.format(
+                a_id=a['id'], a_type=TYPE_MAP[a['type']], u_name=a['user_name'],
+                u_id=a['user_uid'], time=a['elapsed'], db=a['db']))
 
     msg = MIMEMultipart()
     msg['Subject'] = SUBJECT
@@ -90,12 +91,17 @@ def generate_email_message(failing_analyses):
     return msg
 
 def to_time(mongo_timestamp):
+    """ Convert mongo NumberLong UNIX timestamp to something sane. """
     return TS(int(mongo_timestamp/1000), inc=0).as_datetime()
 
 def get_elapsed(time_str):
-    return math.floor((DT.now(TZ.utc).astimezone() - time_str).total_seconds() / 60)
+    """ Return the number of minutes elapsed between time_str and now. """
+    return math.floor((DT.now(TZ.utc).astimezone()-time_str).total_seconds()/60)
 
 def get_user(user_hash, db):
+    """
+    Given a mongo user hash, return a dict containing the user's name and uid.
+    """
     user = db.users.find_one({"_id":ObjectId(user_hash)})
     if user is None:
         return {'uid': None, 'name': None}
@@ -103,6 +109,12 @@ def get_user(user_hash, db):
         return {'uid': user['dce'], 'name': user['name']}
 
 def get_failing_analyses(client):
+    """
+    Given a database connection, iterate over all of the 'analyses' objects.
+    For each analysis that has existed for more than 15 minutes, has no results,
+    and has not completed -- create a dictionary representation and append it to
+    a list. Return said list.
+    """
     failing_analyses = list()
 
     db_dev = client['linguine-development']
@@ -111,13 +123,16 @@ def get_failing_analyses(client):
         ts = to_time(analysis['time_created'])
         status = analysis['complete']
         elapsed = get_elapsed(ts)
-        if elapsed > 15 and status == False:
+        result = analysis['result']
+        if elapsed > 15 and status == False and result == "":
             user = get_user(analysis['user_id'], db_dev)
             failing_analyses.append(
                 {'id': str(analysis['_id']), 'created': str(ts),
                  'name': str(analysis['analysis_name']), 'db': 'dev',
                  'user_uid': user['uid'], 'user_name': user['name'],
-                 'elapsed': elapsed, 'type': str(analysis['analysis'])})
+                 'elapsed': elapsed, 'type': str(analysis['analysis']),
+                 'corpora_ids': str(analysis['corpora_ids']),
+                 'complete': status, 'result': result})
 
     db_prod = client['linguine-production']
     analyses = db_prod.analyses.find()
@@ -125,39 +140,48 @@ def get_failing_analyses(client):
         ts = to_time(analysis['time_created'])
         status = analysis['complete']
         elapsed = get_elapsed(ts)
-        if elapsed > 15 and status == False:
+        result = analysis['result']
+        if elapsed > 15 and status == False and result == "":
             user = get_user(analysis['user_id'], db_prod)
             failing_analyses.append(
                 {'id': str(analysis['_id']), 'created': str(ts),
                  'name': str(analysis['analysis_name']), 'db': 'prod',
                  'user_uid': user['uid'], 'user_name': user['name'],
-                 'elapsed': elapsed, 'type': str(analysis['type'])})
+                 'elapsed': elapsed, 'type': str(analysis['type']),
+                 'corpora_ids': str(analysis['corpora_ids']),
+                 'complete': status, 'result': result})
 
     return failing_analyses
 
 if __name__ == "__main__":
-    # Connect to MongoDB.
-    client = pymongo.MongoClient()
-
-    # Start an SMTP server.
-    email_server = smtplib.SMTP("localhost")
-    email_server.set_debuglevel(1)
-
     already_notified = list()
+    loop_count = 0
     while(True):
-        failing_analyses = get_failing_analyses(client)
+        client = pymongo.MongoClient()
+        analyses = get_failing_analyses(client)
         to_notify = list()
-        for a in failing_analyses:
+        dt = str(DT.now(TZ.utc).astimezone())
+        print("{:s} | {:d} Failing Analyses:".format(dt, len(analyses)))
+        for a in analyses:
+            print("[{:d}] ({:s}) | [{:s}] ({:s})".format(
+                a['elapsed'], a['user_uid'], TYPE_MAP[a['type']], a['id']))
             if a['id'] not in already_notified:
                 already_notified.append(a['id'])
                 to_notify.append(a)
 
         if len(to_notify) > 0:
-            email_message = generate_email_message(failing_analyses)
-            print(email_message)
-            email_server.sendmail(FROM_ADDRESS, TO_ADDRESSES, email_message.as_string())
+            # Start an SMTP server.
+            server = smtplib.SMTP("localhost")
+
+            message = generate_email_message(analyses)
+            server.sendmail(FROM_ADDRESS, TO_ADDRESSES, message.as_string())
+            print("Email sent at: " + str(DT.now(TZ.utc).astimezone()))
+            server.quit()
         else:
             print("...")
-
-    email_server.quit()
-
+        client.close()
+        loop_count += 1
+        if loop_count >= 12:
+            loop_count = 0
+            already_notified = list()            
+        time.sleep(300)
