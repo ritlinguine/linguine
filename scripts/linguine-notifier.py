@@ -63,7 +63,7 @@ def generate_email_message(analyses):
             u_id='User ID', time='Time (mins)', db='DB'))
     message.append(
         "+--------------------------+--------------------------+--------------"
-        "------------+---------+-------------+------+")
+        "------------+---------+-------------+------+\n")
     for a in analyses:
         message.append(
             TEMPLATE.format(
