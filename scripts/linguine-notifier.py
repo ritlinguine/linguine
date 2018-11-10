@@ -126,7 +126,7 @@ def get_failing_analyses(client):
         'linguine-production': 'prod',
     }
 
-    for db_name, db_friendly_name in db_names:
+    for db_name, db_friendly_name in db_names.items():
         db = client[db_name]
         analyses = db.analyses.find()
         for analysis in analyses:
