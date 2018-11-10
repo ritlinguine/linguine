@@ -28,7 +28,7 @@ TYPE_MAP = {
     'topic-model-30': 'Topic Modeling (30 Topics)',
     'word-vector': 'Word Vectors',
     'unsup-morph': 'Morphology Induction',
-    'bigram-array': 'Bigram Array'
+    'bigram-array': 'Bigram Array',
 }
 
 
@@ -121,39 +121,28 @@ def get_failing_analyses(client):
     """
     failing_analyses = list()
 
-    db_dev = client['linguine-development']
-    analyses = db_dev.analyses.find()
-    for analysis in analyses:
-        ts = to_time(analysis['time_created'])
-        status = analysis['complete']
-        elapsed = get_elapsed(ts)
-        result = analysis['result']
-        if elapsed > 15 and not status and result == "":
-            user = get_user(analysis['user_id'], db_dev)
-            failing_analyses.append(
-                {'id': str(analysis['_id']), 'created': str(ts),
-                 'name': str(analysis['analysis_name']), 'db': 'dev',
-                 'user_uid': user['uid'], 'user_name': user['name'],
-                 'elapsed': elapsed, 'type': str(analysis['analysis']),
-                 'corpora_ids': str(analysis['corpora_ids']),
-                 'complete': status, 'result': result})
+    db_names = {
+        'linguine-development': 'dev',
+        'linguine-production': 'prod',
+    }
 
-    db_prod = client['linguine-production']
-    analyses = db_prod.analyses.find()
-    for analysis in analyses:
-        ts = to_time(analysis['time_created'])
-        status = analysis['complete']
-        elapsed = get_elapsed(ts)
-        result = analysis['result']
-        if elapsed > 15 and not status and result == "":
-            user = get_user(analysis['user_id'], db_prod)
-            failing_analyses.append(
-                {'id': str(analysis['_id']), 'created': str(ts),
-                 'name': str(analysis['analysis_name']), 'db': 'prod',
-                 'user_uid': user['uid'], 'user_name': user['name'],
-                 'elapsed': elapsed, 'type': str(analysis['type']),
-                 'corpora_ids': str(analysis['corpora_ids']),
-                 'complete': status, 'result': result})
+    for db_name, db_friendly_name in db_names:
+        db = client[db_name]
+        analyses = db.analyses.find()
+        for analysis in analyses:
+            ts = to_time(analysis['time_created'])
+            status = analysis['complete']
+            elapsed = get_elapsed(ts)
+            result = analysis['result']
+            if elapsed > 15 and not status and result == "":
+                user = get_user(analysis['user_id'], db)
+                failing_analyses.append(
+                    {'id': str(analysis['_id']), 'created': str(ts),
+                     'name': str(analysis['analysis_name']), 'db': db_friendly_name,
+                     'user_uid': user['uid'], 'user_name': user['name'],
+                     'elapsed': elapsed, 'type': str(analysis['analysis']),
+                     'corpora_ids': str(analysis['corpora_ids']),
+                     'complete': status, 'result': result})
 
     return failing_analyses
 
@@ -162,31 +151,30 @@ if __name__ == "__main__":
     already_notified = list()
     loop_count = 0
     while True:
-        client = pymongo.MongoClient()
-        analyses = get_failing_analyses(client)
-        to_notify = list()
-        dt = str(DT.now(TZ.utc).astimezone())
-        print("{:s} | {:d} Failing Analyses:".format(dt, len(analyses)))
-        for a in analyses:
-            print("[{:d}] ({:s}) | [{:s}] ({:s})".format(
-                a['elapsed'], a['user_uid'], TYPE_MAP[a['type']], a['id']))
-            if a['id'] not in already_notified:
-                already_notified.append(a['id'])
-                to_notify.append(a)
+        for _ in range(12):
+            client = pymongo.MongoClient()
+            analyses = get_failing_analyses(client)
+            to_notify = list()
+            dt = str(DT.now(TZ.utc).astimezone())
+            print("{:s} | {:d} Failing Analyses:".format(dt, len(analyses)))
+            for a in analyses:
+                print("[{:d}] ({:s}) | [{:s}] ({:s})".format(
+                    a['elapsed'], a['user_uid'], TYPE_MAP[a['type']], a['id']))
+                if a['id'] not in already_notified:
+                    already_notified.append(a['id'])
+                    to_notify.append(a)
 
-        if len(to_notify) > 0:
-            # Start an SMTP server.
-            server = smtplib.SMTP("localhost")
+            if len(to_notify) > 0:
+                # Start an SMTP server.
+                server = smtplib.SMTP("localhost")
 
-            message = generate_email_message(analyses)
-            server.sendmail(FROM_ADDRESS, TO_ADDRESSES, message.as_string())
-            print("Email sent at: " + str(DT.now(TZ.utc).astimezone()))
-            server.quit()
-        else:
-            print("...")
-        client.close()
-        loop_count += 1
-        if loop_count >= 12:
-            loop_count = 0
-            already_notified = list()
-        time.sleep(300)
+                message = generate_email_message(analyses)
+                server.sendmail(FROM_ADDRESS, TO_ADDRESSES, message.as_string())
+                print("Email sent at: " + str(DT.now(TZ.utc).astimezone()))
+                server.quit()
+            else:
+                print("...")
+            client.close()
+            time.sleep(300)
+
+        already_notified = list()
