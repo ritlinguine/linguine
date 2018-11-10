@@ -1,24 +1,15 @@
-#!/usr/bin/env python3
-
-#### IMPORTS ###################################################################
-import pymongo
-import pprint
-import json
-import email
-import smtplib
-import unicodedata
-import time
 import math
-
-from bson.objectid import ObjectId
-from bson.timestamp import Timestamp as TS
+import smtplib
+import time
 from datetime import datetime as DT
 from datetime import timezone as TZ
-from email.message import EmailMessage as EMAIL
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-#### GLOBALS ###################################################################
+import pymongo
+from bson.objectid import ObjectId
+from bson.timestamp import Timestamp as TS
+
 FROM_ADDRESS = "linguine@nlp.rit.edu"
 TO_ADDRESSES = "aph3032@rit.edu"
 SUBJECT = "[Linguine] Long-Running Analyses"
@@ -40,19 +31,19 @@ TYPE_MAP = {
     'bigram-array': 'Bigram Array'
 }
 
+
 def generate_email_message(analyses):
     """
     Given a list of dictionaries, where each dictionary represents an analysis,
     create a MIMEMultipart object (an email) and return it.
     """
-    global TEMPLATE, TYPE_MAP, TO_ADDRESSES, FROM_ADDRESS, SUBJECT
     curr = DT.now(TZ.utc).astimezone()
     curr_time = curr.time().strftime("%H:%M:%S")
     curr_date = curr.date().strftime("%Y-%m-%d")
     pre = (
         "As of {:s} on {:s}, Linguine has {:d} analyses that have been running"
         " for more than 15 minutes:\n\n").format(
-            str(curr_time), str(curr_date), len(analyses))
+        str(curr_time), str(curr_date), len(analyses))
 
     post = "Note: This is an auto-generated email. Please do not reply."
 
@@ -76,45 +67,50 @@ def generate_email_message(analyses):
     msg['To'] = TO_ADDRESSES
     body = (
         "<html>"
-          "<head>"
-            "<style>"
-              "div { font-family: monospace; white-space: pre; }"
-            "</style>"
-          "</head>"
-          "<body>"
-            "<div>"
-              "<b>" + pre.replace("\n", "<br>") + "<br>"
-            "</div>"
-            "<div style='font-family: monospace'>" +
-              "".join(message).replace("\n", "<br>") +
-            "</div>"
-            "<div>" +
-              post.replace("\n", "<br>") +
-            "</div>"
-          "</body>"
-        "</html>")
+            "<head>"
+                "<style>"
+                    "div { font-family: monospace; white-space: pre; }"
+                "</style>"
+            "</head>"
+            "<body>"
+                "<div>"
+                    "<b>" + pre.replace("\n", "<br>") + "<br>"
+                 "</div>"
+                 "<div style='font-family: monospace'>" +
+                    "".join(message).replace("\n", "<br>") +
+                "</div>"
+                "<div>" +
+                    post.replace("\n", "<br>") +
+                "</div>"
+            "</body>"
+        "</html>"
+    )
 
     msg.attach(MIMEText(body, 'html'))
 
     return msg
 
+
 def to_time(mongo_timestamp):
     """ Convert mongo NumberLong UNIX timestamp to something sane. """
-    return TS(int(mongo_timestamp/1000), inc=0).as_datetime()
+    return TS(int(mongo_timestamp / 1000), inc=0).as_datetime()
+
 
 def get_elapsed(time_str):
     """ Return the number of minutes elapsed between time_str and now. """
-    return math.floor((DT.now(TZ.utc).astimezone()-time_str).total_seconds()/60)
+    return math.floor((DT.now(TZ.utc).astimezone() - time_str).total_seconds() / 60)
+
 
 def get_user(user_hash, db):
     """
     Given a mongo user hash, return a dict containing the user's name and uid.
     """
-    user = db.users.find_one({"_id":ObjectId(user_hash)})
+    user = db.users.find_one({"_id": ObjectId(user_hash)})
     if user is None:
         return {'uid': None, 'name': None}
     else:
         return {'uid': user['dce'], 'name': user['name']}
+
 
 def get_failing_analyses(client):
     """
@@ -132,7 +128,7 @@ def get_failing_analyses(client):
         status = analysis['complete']
         elapsed = get_elapsed(ts)
         result = analysis['result']
-        if elapsed > 15 and status == False and result == "":
+        if elapsed > 15 and not status and result == "":
             user = get_user(analysis['user_id'], db_dev)
             failing_analyses.append(
                 {'id': str(analysis['_id']), 'created': str(ts),
@@ -149,7 +145,7 @@ def get_failing_analyses(client):
         status = analysis['complete']
         elapsed = get_elapsed(ts)
         result = analysis['result']
-        if elapsed > 15 and status == False and result == "":
+        if elapsed > 15 and not status and result == "":
             user = get_user(analysis['user_id'], db_prod)
             failing_analyses.append(
                 {'id': str(analysis['_id']), 'created': str(ts),
@@ -161,10 +157,11 @@ def get_failing_analyses(client):
 
     return failing_analyses
 
+
 if __name__ == "__main__":
     already_notified = list()
     loop_count = 0
-    while(True):
+    while True:
         client = pymongo.MongoClient()
         analyses = get_failing_analyses(client)
         to_notify = list()
@@ -191,5 +188,5 @@ if __name__ == "__main__":
         loop_count += 1
         if loop_count >= 12:
             loop_count = 0
-            already_notified = list()            
+            already_notified = list()
         time.sleep(300)
