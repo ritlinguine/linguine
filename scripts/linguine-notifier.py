@@ -20,7 +20,7 @@ from email.mime.text import MIMEText
 
 #### GLOBALS ###################################################################
 FROM_ADDRESS = "linguine@nlp.rit.edu"
-TO_ADDRESSES = "bsm9339@rit.edu;coagla@rit.edu"
+TO_ADDRESSES = "aph3032@rit.edu"
 SUBJECT = "[Linguine] Long-Running Analyses"
 TEMPLATE = ("| {a_id:24} | {a_type:24} | {u_name:24} | {u_id:7} | {time:11} |"
             " {db:4} |\n")
@@ -30,7 +30,15 @@ TYPE_MAP = {
     'nlp-relation': 'Relation Extraction', 'wordcloudop': 'Term Frequency',
     'splat-pronouns': 'Pronoun Frequency', 'splat-disfluency': 'Disfluency',
     'splat-syllables': 'Syllable Frequency', 'splat-ngrams': 'N-Gram Frequency',
-    'splat-complexity': 'Complexity', 'splat-pos': 'POS Frequency'}
+    'splat-complexity': 'Complexity', 'splat-pos': 'POS Frequency',
+    'char-ngrams': 'Character N-gram Frequency',
+    'length-stats': 'Word and Sentence Length',
+    'topic-model-10': 'Topic Modeling (10 Topics)',
+    'topic-model-30': 'Topic Modeling (30 Topics)',
+    'word-vector': 'Word Vectors',
+    'unsup-morph': 'Morphology Induction',
+    'bigram-array': 'Bigram Array'
+}
 
 def generate_email_message(analyses):
     """
