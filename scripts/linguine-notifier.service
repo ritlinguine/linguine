@@ -1,0 +1,11 @@
+[Service]
+WorkingDirectory=/home/linguini/linguine/scripts
+ExecStart=/home/linguini/.pyenv/versions/3.4.9/bin/python -u linguine-notifier.py
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=linguine-notifier
+User=linguini
+Group=nobody
+
+[Install]
+WantedBy=multi-user.target
