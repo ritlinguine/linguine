@@ -1,6 +1,6 @@
 [Service]
 WorkingDirectory=/home/linguini/linguine-node
-ExecStart=/usr/local/bin/node /home/linguini/linguine-node/bin/www
+ExecStart=/home/linguini/.nodenv/versions/10.15.3/bin/node /home/linguini/linguine-node/bin/www
 Restart=always
 StandardOutput=syslog
 SyslogIdentifier=linguine-node
