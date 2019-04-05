@@ -1,6 +1,6 @@
 [Service]
 WorkingDirectory=/home/linguini/linguine/scripts
-ExecStart=/home/linguini/.pyenv/versions/3.6.8/bin/python -u linguine-notifier.py
+ExecStart=/home/linguini/.pyenv/versions/3.7.3/bin/python -u linguine-notifier.py
 Restart=always
 StandardOutput=syslog
 SyslogIdentifier=linguine-notifier
