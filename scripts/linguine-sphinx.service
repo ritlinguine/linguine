@@ -1,0 +1,11 @@
+[Service]
+WorkingDirectory=/home/linguini/Sphinx4-HTTP-server
+ExecStart=/bin/bash -c '/home/linguini/apache-maven-3.6.1/bin/mvn exec:java -Dexec.mainClass="org.jitsi.sphinx4http.server.HttpServer"'
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=linguine-sphinx
+User=linguini
+Group=nobody
+
+[Install]
+WantedBy=multi-user.target
