@@ -1,0 +1,11 @@
+[Service]
+WorkingDirectory=/home/linguini/stanford-corenlp-full-2018-10-05
+ExecStart=/usr/bin/java -mx4g -cp "*" edu.stanford.nlp.pipeline.StanfordCoreNLPServer -port 9000 -timeout 15000
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=linguine-corenlp
+User=linguini
+Group=nobody
+
+[Install]
+WantedBy=multi-user.target
