@@ -5,13 +5,28 @@ from datetime import datetime as DT
 from datetime import timezone as TZ
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from pathlib import Path
 
 import pymongo
 from bson.objectid import ObjectId
 from bson.timestamp import Timestamp as TS
 
+
+def get_to_addresses():
+    """Loads destination addresses from text file.
+
+    The current email file path is hard-coded. If the file is not present, this script will crash.
+
+    Returns:
+        List of email addresses.
+    """
+    email_file = Path("/", "home", "linguini", "emails.txt")
+    with email_file.open() as file:
+        emails = file.read().splitlines()
+    return emails
+
 FROM_ADDRESS = "linguine@nlp.rit.edu"
-TO_ADDRESSES = "aph3032@rit.edu"
+TO_ADDRESSES = get_to_addresses()
 SUBJECT = "[Linguine] Long-Running Analyses"
 TEMPLATE = ("| {a_id:24} | {a_type:24} | {u_name:24} | {u_id:7} | {time:11} |"
             " {db:4} |\n")
