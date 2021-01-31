@@ -79,7 +79,7 @@ def generate_email_message(analyses):
     msg = MIMEMultipart()
     msg['Subject'] = SUBJECT
     msg['From'] = FROM_ADDRESS
-    msg['To'] = TO_ADDRESSES
+    msg['To'] = ", ".join(TO_ADDRESSES)
     body = (
         "<html>"
             "<head>"
